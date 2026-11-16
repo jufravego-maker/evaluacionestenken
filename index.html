@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tenken Engineering · Evaluación estructural post-sismo</title>
+<meta name="description" content="¿Su edificio quedó seguro después del sismo? Inspección visual (ATC-20/FEMA, NSR-10) + sensores de vibración. Dictamen técnico claro para copropietarios y aseguradoras.">
+<meta property="og:title" content="¿Su edificio quedó seguro después del sismo? · Tenken Engineering">
+<meta property="og:description" content="Vemos + medimos: inspección visual y análisis de vibraciones. Un veredicto claro: verde, amarillo o rojo.">
+<meta property="og:image" content="assets/slides/1.webp">
+<meta name="theme-color" content="#040a17">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#040a17; --panel:rgba(8,20,42,.62); --line:rgba(90,190,255,.22); --line2:rgba(90,190,255,.5);
+  --cyan:#2ec5ff; --cyan2:#8fe4ff; --green:#3ee07a; --yellow:#ffd23f; --orange:#ff8a2a; --red:#ff3d3d;
+  --text:#eaf2ff; --muted:#9fb3d1; --wa:#25d366;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;font-size:16.5px;line-height:1.5;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Sora,Manrope,sans-serif;line-height:1.06;letter-spacing:-.02em}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.hl{color:var(--cyan)}
+
+#stage{position:fixed;inset:0;z-index:0}
+#stage canvas{display:block;width:100%;height:100%}
+.shade{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,rgba(4,10,23,.9) 0%,rgba(4,10,23,.55) 34%,rgba(4,10,23,0) 56%),
+             linear-gradient(0deg,rgba(4,10,23,.65),rgba(4,10,23,0) 22%),
+             radial-gradient(120% 90% at 70% 50%,transparent 55%,rgba(2,6,14,.6))}
+
+/* loader */
+#loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;transition:opacity .9s,visibility .9s}
+#loader.done{opacity:0;visibility:hidden}
+#loader .logo{transform:scale(1.5);margin-bottom:30px}
+.ld-bar{width:200px;height:2px;background:rgba(255,255,255,.08);margin:0 auto;overflow:hidden;border-radius:2px}
+.ld-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .3s}
+#loader p{margin-top:14px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);text-align:center}
+
+.logo{display:inline-flex;flex-direction:column;align-items:center;line-height:1}
+.logo b{font-family:Sora;font-weight:600;font-size:24px;letter-spacing:.07em;background:linear-gradient(180deg,#fff 0%,#c9d3e0 45%,#8a96a8 56%,#eef2f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo small{font-size:8px;letter-spacing:.56em;color:#c7d2e2;margin-top:4px;padding-left:.56em}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px clamp(16px,4vw,48px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 24px;border-radius:999px;font-weight:800;font-size:16px;transition:transform .2s,box-shadow .2s,background .2s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px)}
+.btn svg{width:21px;height:21px;flex:none}
+.btn-wa{background:var(--wa);color:#03200e;box-shadow:0 10px 34px -8px rgba(37,211,102,.7)}
+.btn-wa:hover{box-shadow:0 16px 44px -6px rgba(37,211,102,.9)}
+.btn-ghost{border:1px solid var(--line2);background:rgba(46,197,255,.07)}
+.btn-ghost:hover{background:rgba(46,197,255,.16)}
+.btn-sm{padding:10px 18px;font-size:14px}
+
+/* chapters rail */
+.rail{position:fixed;right:clamp(14px,2.4vw,30px);top:50%;transform:translateY(-50%);z-index:40;display:grid;gap:16px}
+.rail a{display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:transparent;transition:color .3s}
+.rail a::after{content:"";width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);transition:all .3s}
+.rail a:hover{color:var(--muted)}
+.rail a.on{color:var(--cyan2)}
+.rail a.on::after{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 14px var(--cyan)}
+
+/* sections */
+main{position:relative;z-index:2}
+.ch{position:relative;height:100vh;height:100svh;scroll-snap-align:start;display:flex;align-items:center;padding:86px clamp(16px,6vw,96px) 40px;overflow:hidden}
+.box{max-width:560px;width:100%}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan2);font-weight:800;margin-bottom:16px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--cyan)}
+h1{font-size:clamp(38px,5.4vw,74px);font-weight:800}
+h2{font-size:clamp(30px,3.8vw,50px);font-weight:800;margin-bottom:14px}
+.lead{font-size:clamp(16px,1.35vw,19px);color:#c6d5ec}
+.lead strong{color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+/* reveal per chapter */
+.ch .rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+.ch.active .rv{opacity:1;transform:none}
+.ch.active .rv:nth-child(2){transition-delay:.08s}.ch.active .rv:nth-child(3){transition-delay:.16s}.ch.active .rv:nth-child(4){transition-delay:.24s}.ch.active .rv:nth-child(5){transition-delay:.32s}.ch.active .rv:nth-child(6){transition-delay:.4s}
+
+/* hero */
+.qs{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.q{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(8,20,42,.55);font-size:14px;font-weight:700;backdrop-filter:blur(8px)}
+.q i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.hint span{width:22px;height:36px;border:1.5px solid var(--line2);border-radius:12px;position:relative}
+.hint span::after{content:"";position:absolute;left:50%;top:7px;width:3px;height:7px;border-radius:2px;background:var(--cyan);transform:translateX(-50%);animation:sh 1.6s infinite}
+@keyframes sh{0%{opacity:0;top:6px}30%{opacity:1}100%{opacity:0;top:20px}}
+
+/* photo crops */
+.ph{position:relative;border-radius:12px;overflow:hidden;background-repeat:no-repeat;background-color:#0a1a33}
+.ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(3,8,18,.85));pointer-events:none}
+.ph .cap{position:absolute;left:12px;right:12px;bottom:10px;z-index:1;font-size:13.5px;line-height:1.3}
+.ph .cap b{display:block;font-family:Sora;font-size:15px}
+
+/* method */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.duo .card{padding:8px}
+.duo .ph{aspect-ratio:4/3}
+.duo .num{position:absolute;top:10px;left:10px;z-index:1;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:Sora;font-weight:800;background:rgba(4,10,23,.7);border:1.5px solid var(--cyan);box-shadow:0 0 16px -2px var(--cyan)}
+.duo .g .num{border-color:var(--green);box-shadow:0 0 16px -2px var(--green)}
+.duo p{font-size:14px;color:#c6d5ec;padding:10px 6px 4px}
+.wave{margin-top:12px;padding:10px 14px;display:flex;align-items:center;gap:14px}
+.wave canvas{flex:1;height:46px;min-width:0}
+.live{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:800;font-size:11px;letter-spacing:.14em;white-space:nowrap}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.2}}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tag{font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:#cfe0f5;background:rgba(8,20,42,.5)}
+
+/* diag */
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}
+.dt{border-radius:12px;overflow:hidden;border:1.5px solid;background:rgba(5,12,26,.8)}
+.dt .ph{aspect-ratio:3/4;border-radius:0}
+.dt .lb{display:flex;align-items:center;gap:6px;padding:7px 8px;font-size:11.5px;font-weight:800;letter-spacing:.06em}
+.dt .lb b{font-family:Sora;font-size:15px;padding:1px 6px;border-radius:6px;color:#061020}
+.dt .ph .cap{font-size:11.5px;color:#d6e2f3;bottom:6px;left:8px;right:8px}
+.t0{border-color:var(--green)}.t0 .lb b{background:var(--green)}
+.t1{border-color:var(--yellow)}.t1 .lb b{background:var(--yellow)}
+.t2{border-color:var(--orange)}.t2 .lb b{background:var(--orange)}
+.t3{border-color:var(--red)}.t3 .lb b{background:var(--red);color:#fff}
+.toggle{display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--line);background:rgba(4,10,23,.7);margin-top:18px}
+.toggle button{padding:10px 18px;border-radius:999px;font-weight:800;font-size:14.5px;color:var(--muted);transition:all .25s}
+.toggle .on.sano{background:var(--green);color:#03160a;box-shadow:0 0 22px -6px var(--green)}
+.toggle .on.danado{background:var(--red);color:#fff;box-shadow:0 0 22px -6px var(--red)}
+.hnote{margin-top:10px;font-size:14.5px;color:#c6d5ec;min-height:44px}
+.hnote b{color:#fff}
+
+/* verdict */
+.tl{display:grid;gap:9px;margin-top:20px}
+.tl button{display:flex;align-items:center;gap:14px;text-align:left;padding:8px 16px 8px 8px;border-radius:14px;border:1.5px solid var(--line);background:rgba(5,12,26,.72);backdrop-filter:blur(10px);transition:all .3s}
+.tl .ph{flex:none;width:92px;aspect-ratio:3/2;border-radius:9px}
+.tl .ph::after{display:none}
+.tl b{font-family:Sora;font-size:17px;display:block;letter-spacing:.02em}
+.tl span{font-size:14px;color:#c6d5ec}
+.tl .lamp{margin-left:auto;flex:none;width:16px;height:16px;border-radius:50%;opacity:.3;transition:all .3s}
+.tl .v .lamp{background:var(--green);color:var(--green)}.tl .a .lamp{background:var(--yellow);color:var(--yellow)}.tl .r .lamp{background:var(--red);color:var(--red)}
+.tl .on .lamp{opacity:1;box-shadow:0 0 18px 3px currentColor}
+.tl .v.on{border-color:var(--green)}.tl .a.on{border-color:var(--yellow)}.tl .r.on{border-color:var(--red)}
+.umbral{display:flex;gap:14px;align-items:center;margin-top:12px;padding:12px 16px}
+.umbral svg{flex:none;width:58px;height:58px}
+.umbral p{font-size:14px;color:#c6d5ec}
+.umbral strong{color:#fff}
+
+/* contact */
+.cta-wrap{display:grid;grid-template-columns:1fr 420px;gap:34px;align-items:center;max-width:1120px;width:100%}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.steps span{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;padding:8px 13px;border-radius:999px;background:rgba(8,20,42,.6);border:1px solid var(--line)}
+.steps em{font-style:normal;font-family:Sora;color:var(--cyan)}
+.for{margin-top:14px;font-size:14px;color:var(--muted)}
+.for b{color:#cfe0f5}
+form.panel{padding:22px}
+form h3{font-size:21px}
+form>p{font-size:14px;color:var(--muted);margin:4px 0 6px}
+label{display:block;font-size:12px;font-weight:800;letter-spacing:.05em;color:#bcd0ea;margin:11px 0 5px}
+select,input{width:100%;padding:11px 13px;border-radius:11px;border:1px solid var(--line);background:rgba(3,9,20,.75);color:var(--text);font:inherit;font-size:16px;outline:none}
+select:focus,input:focus{border-color:var(--cyan)}
+select option{background:#071329}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pills label{margin:0;cursor:pointer}
+.pills input{display:none}
+.pills span{display:inline-block;padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-weight:700;font-size:13px;color:#cbd8ec;letter-spacing:0}
+.pills input:checked+span{border-color:var(--cyan);background:rgba(46,197,255,.16);color:#fff}
+form .btn{width:100%;margin-top:16px;font-size:17px}
+.small{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+.foot{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:12px;color:rgba(159,179,209,.6)}
+
+/* fab */
+.fab{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;align-items:center;gap:10px}
+.fab .bubble{background:#fff;color:#0b1a2e;font-weight:800;font-size:13.5px;padding:10px 14px;border-radius:14px 14px 4px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:all .5s;pointer-events:none}
+.fab.show .bubble{opacity:1;transform:none}
+.fab a{width:60px;height:60px;border-radius:50%;background:var(--wa);display:grid;place-items:center;box-shadow:0 10px 30px -6px rgba(37,211,102,.7);position:relative}
+.fab a::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--wa);animation:pu 2s infinite}
+.fab a svg{width:31px;height:31px;color:#fff}
+@keyframes pu{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
+
+/* lightbox */
+.lbx{position:fixed;inset:0;z-index:90;background:rgba(2,6,14,.95);display:none;align-items:center;justify-content:center;padding:18px}
+.lbx.open{display:flex}
+.lbx img{max-width:min(1400px,100%);max-height:84vh;border-radius:12px}
+.lbx button{position:absolute;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.1);font-size:22px;display:grid;place-items:center}
+.lbx .x{top:16px;right:16px}.lbx .pv{left:14px;top:50%}.lbx .nx{right:14px;top:50%}
+.lbx .ct{position:absolute;bottom:18px;font-size:13px;color:var(--muted)}
+
+@media (max-width:980px){
+  .rail{display:none}
+  .cta-wrap{grid-template-columns:1fr;gap:16px}
+  .cta-wrap .intro .lead,.cta-wrap .intro .for{display:none}
+}
+@media (max-width:760px){
+  html{scroll-snap-type:y proximity}
+  body{font-size:15.5px}
+  .shade{background:linear-gradient(0deg,rgba(4,10,23,.96) 0%,rgba(4,10,23,.82) 46%,rgba(4,10,23,.1) 68%,rgba(4,10,23,.35) 100%)}
+  .ch{align-items:flex-end;padding:76px 16px 92px;height:auto;min-height:100svh}
+  .ch.hero{padding-bottom:84px}
+  h1{font-size:36px}
+  h2{font-size:28px;margin-bottom:8px}
+  .duo{gap:8px}
+  .duo p{font-size:12.5px;padding:8px 2px 2px}
+  .dgrid{gap:6px}
+  .dt .ph .cap{display:none}
+  .dt .lb{font-size:9.5px;padding:6px;letter-spacing:0}
+  .dt .lb b{font-size:13px}
+  .tl .ph{width:70px}
+  .tl b{font-size:15px}
+  .tl span{font-size:12.5px}
+  .nav-cta span{display:none}
+  .fab .bubble{display:none}
+  .hint{display:none}
+  .row .btn{flex:1}
+  .ch.cta{align-items:flex-start;padding-top:80px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.ch .rv{transition:none;opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div id="loader"><div>
+  <div class="logo"><b>TENKEN</b><small>ENGINEERING</small></div>
+  <div class="ld-bar"><i id="ldb"></i></div>
+  <p>Calibrando sensores</p>
+</div></div>
+
+<div id="stage"></div>
+<div class="shade"></div>
+
+<nav>
+  <a href="#inicio" class="logo" aria-label="Tenken Engineering"><b>TENKEN</b><small>ENGINEERING</small></a>
+  <a class="btn btn-wa btn-sm nav-cta wa" href="#" data-msg="Hola Tenken, quiero información sobre la evaluación estructural post-sismo.">
+    <svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg><span>Escríbanos por WhatsApp</span>
+  </a>
+</nav>
+
+<div class="rail" id="rail"></div>
+
+<main>
+<!-- 1 -->
+<section class="ch hero" id="inicio" data-scene="hero" data-label="Inicio">
+  <div class="box">
+    <div class="eyebrow rv">Evaluación estructural post-sismo</div>
+    <h1 class="rv">¿Su edificio quedó <span class="hl">seguro</span> después del sismo?</h1>
+    <p class="lead rv" style="margin-top:18px">Por fuera puede verse bien y estar <strong>comprometido por dentro</strong>. Lo sabemos con método: <strong>lo que se ve + lo que se mide.</strong></p>
+    <div class="row rv">
+      <a class="btn btn-wa wa" href="#" data-msg="Hola Tenken, después del sismo quiero saber si mi edificio quedó seguro. ¿Me pueden dar información?"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Evaluar mi edificio</a>
+      <a class="btn btn-ghost" href="#metodo">Cómo lo hacemos</a>
+    </div>
+    <div class="qs rv">
+      <span class="q"><i></i>¿Es habitable hoy?</span>
+      <span class="q"><i></i>¿Aguanta una réplica?</span>
+      <span class="q"><i></i>¿Se repara o se demuele?</span>
+    </div>
+  </div>
+  <div class="hint"><span></span>Desplácese</div>
+</section>
+
+<!-- 2 -->
+<section class="ch" id="metodo" data-scene="method" data-label="Método">
+  <div class="box">
+    <div class="eyebrow rv">Nuestro método</div>
+    <h2 class="rv">Vemos <span class="hl">+</span> medimos</h2>
+    <p class="lead rv">Cruzamos evidencia física con mediciones instrumentales. <strong>No es invasivo:</strong> no hay que desocupar ni romper nada.</p>
+    <div class="duo rv">
+      <div class="panel card"><div class="ph" data-crop="crack"><span class="num">1</span></div><p><b style="color:#fff">Inspección visual</b> piso a piso: columnas, vigas, nudos, escaleras y fachadas. Fotos y medición de grietas.</p></div>
+      <div class="panel card g"><div class="ph" data-crop="sensor6"><span class="num">2</span></div><p><b style="color:#fff">Sensores de vibración</b> en el último nivel: medimos cómo “respira” el edificio.</p></div>
+    </div>
+    <div class="panel wave rv"><span class="live">EN VIVO</span><canvas id="wv1"></canvas></div>
+    <div class="tags rv"><span class="tag">ATC-20 / FEMA</span><span class="tag">NSR-10</span><span class="tag">Acelerómetros</span><span class="tag">Piso crítico</span></div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="ch" id="diagnostico" data-scene="diag" data-label="Diagnóstico">
+  <div class="box">
+    <div class="eyebrow rv">Diagnóstico objetivo</div>
+    <h2 class="rv">Cada grieta tiene una <span class="hl">lectura técnica</span></h2>
+    <div class="dgrid rv">
+      <div class="dt t0"><div class="ph" data-crop="d0"><span class="cap">Sin daño visible</span></div><div class="lb"><b>D0</b>NINGUNO</div></div>
+      <div class="dt t1"><div class="ph" data-crop="d1"><span class="cap">Grietas finas</span></div><div class="lb"><b>D1</b>LEVE</div></div>
+      <div class="dt t2"><div class="ph" data-crop="d2"><span class="cap">Pierde recubrimiento</span></div><div class="lb"><b>D2</b>MODERADO</div></div>
+      <div class="dt t3"><div class="ph" data-crop="d3"><span class="cap">Acero expuesto</span></div><div class="lb"><b>D3</b>SEVERO</div></div>
+    </div>
+    <div class="toggle rv"><button class="sano on" data-h="sano">Edificio sano</button><button class="danado" data-h="danado">Edificio con daño</button></div>
+    <p class="hnote rv" id="hnote"></p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="ch" id="veredicto" data-scene="verdict" data-label="Veredicto">
+  <div class="box">
+    <div class="eyebrow rv">El veredicto</div>
+    <h2 class="rv">Un <span class="hl">semáforo</span> que cualquiera entiende</h2>
+    <div class="tl rv" id="tl">
+      <button class="v on" data-tl="0"><div class="ph" data-crop="tv"></div><div><b style="color:var(--green)">VERDE · Habitable</b><span>Acceso normal.</span></div><i class="lamp"></i></button>
+      <button class="a" data-tl="1"><div class="ph" data-crop="ta"></div><div><b style="color:var(--yellow)">AMARILLO · Uso restringido</b><span>Reparar o apuntalar.</span></div><i class="lamp"></i></button>
+      <button class="r" data-tl="2"><div class="ph" data-crop="tr"></div><div><b style="color:var(--red)">ROJO · Inhabitable</b><span>Evacuación: peligro inminente.</span></div><i class="lamp"></i></button>
+    </div>
+    <div class="panel umbral rv">
+      <svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/><circle id="gArc" cx="21" cy="21" r="15.9" fill="none" stroke="#ff3d3d" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round" transform="rotate(-90 21 21)" style="transition:stroke-dasharray 1.6s ease"/><text x="21" y="24.5" text-anchor="middle" fill="#fff" font-family="Sora" font-weight="800" font-size="10">50%</text></svg>
+      <p><strong>¿Reparar o demoler?</strong> Si reparar cuesta más del ~50% de un edificio nuevo (umbral JBDPA / reaseguro), se recomienda demoler. Le entregamos la hoja de ruta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="ch cta" id="contacto" data-scene="cta" data-label="Contacto">
+  <div class="cta-wrap">
+    <div class="intro">
+      <div class="eyebrow rv">Un dictamen que protege vidas</div>
+      <h2 class="rv">Sepa hoy si su edificio es <span class="hl">seguro</span></h2>
+      <p class="lead rv">Dictamen técnico válido como soporte para <strong>aseguradoras, alcaldía y gestión del riesgo.</strong></p>
+      <div class="steps rv"><span><em>1</em>Inspeccionamos</span><span><em>2</em>Medimos</span><span><em>3</em>Dictaminamos</span></div>
+      <p class="for rv">Para <b>copropiedades, administradores, propietarios y aseguradoras.</b> <a href="#" id="openDeck" style="color:var(--cyan);font-weight:700">Ver presentación completa →</a></p>
+    </div>
+    <form class="panel rv" id="quote">
+      <h3>Solicite su evaluación</h3>
+      <p>Le respondemos por WhatsApp.</p>
+      <div class="r2">
+        <div><label for="f-tipo">Inmueble</label><select id="f-tipo"><option>Edificio / conjunto</option><option>Casa</option><option>Comercial</option><option>Bodega / industrial</option><option>Institucional</option></select></div>
+        <div><label for="f-pisos">Pisos</label><input id="f-pisos" type="number" min="1" max="80" placeholder="Ej. 8" inputmode="numeric"></div>
+      </div>
+      <label for="f-ciudad">Ciudad / municipio</label><input id="f-ciudad" type="text" placeholder="Ej. Bogotá">
+      <label>¿Qué observa?</label>
+      <div class="pills">
+        <label><input type="radio" name="obs" value="Grietas o daños visibles" checked><span>Grietas visibles</span></label>
+        <label><input type="radio" name="obs" value="No veo daños pero me preocupa"><span>No veo daños</span></label>
+        <label><input type="radio" name="obs" value="Necesito soporte para la aseguradora"><span>Aseguradora</span></label>
+        <label><input type="radio" name="obs" value="Es urgente, hay riesgo"><span>Urgente</span></label>
+      </div>
+      <button class="btn btn-wa" type="submit"><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg>Enviar por WhatsApp</button>
+      <p class="small">+57 304 242 4289 · <a href="tel:+573042424289" style="color:var(--cyan)">o llámenos</a></p>
+    </form>
+  </div>
+  <div class="foot">© Tenken Engineering · Evaluación estructural post-sismo</div>
+</section>
+</main>
+
+<div class="fab" id="fab">
+  <div class="bubble">¿Su edificio quedó seguro? Escríbanos 👋</div>
+  <a class="wa" href="#" aria-label="WhatsApp" data-msg="Hola Tenken, quiero información sobre la evaluación estructural post-sismo de mi edificio."><svg viewBox="0 0 24 24" fill="currentColor"><use href="#wa"/></svg></a>
+</div>
+
+<div class="lbx" id="lbx"><button class="x" aria-label="Cerrar">✕</button><button class="pv" aria-label="Anterior">‹</button><img alt="Lámina de la presentación"><button class="nx" aria-label="Siguiente">›</button><span class="ct"></span></div>
+
+<svg width="0" height="0" style="position:absolute"><symbol id="wa" viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.3zM12 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4c-1-1.6-1.5-3.3-1.5-5.2C2.2 6.6 6.6 2.2 12 2.2c2.6 0 5.1 1 6.9 2.9 1.8 1.8 2.9 4.3 2.9 6.9 0 5.4-4.4 9.8-9.8 9.8zm8.4-18.2C18.2 1.3 15.2 0 12 0 5.4 0 0 5.4 0 12c0 2.1.6 4.2 1.6 6L0 24l6.2-1.6c1.8 1 3.8 1.5 5.8 1.5 6.6 0 12-5.4 12-12 0-3.2-1.2-6.2-3.6-8.4z"/></symbol></svg>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+/* ================= WhatsApp ================= */
+const WA='573042424289';
+const waURL=m=>`https://wa.me/${WA}?text=${encodeURIComponent(m)}`;
+document.querySelectorAll('.wa').forEach(a=>{a.href=waURL(a.dataset.msg);a.target='_blank';a.rel='noopener';});
+document.getElementById('quote').addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=id=>document.getElementById(id).value.trim();
+  let m='Hola Tenken 👋, quiero solicitar una evaluación estructural post-sismo.\n\n';
+  m+=`• Inmueble: ${v('f-tipo')}\n`;
+  if(v('f-pisos'))m+=`• Pisos: ${v('f-pisos')}\n`;
+  if(v('f-ciudad'))m+=`• Ubicación: ${v('f-ciudad')}\n`;
+  m+=`• Situación: ${document.querySelector('input[name=obs]:checked').value}`;
+  window.open(waURL(m),'_blank','noopener');
+});
+
+/* ================= Photo crops from the slides (1672×941 reference) ================= */
+const RW=1672,RH=941;
+const CROPS={
+  crack:[3,425,245,955,540], sensor3:[3,428,565,712,885], sensor6:[6,0,190,470,720], roof:[6,600,225,1130,705],
+  eng1:[1,700,0,1672,941], cracked:[2,820,0,1672,880], eng11:[11,1180,40,1672,760],
+  d0:[5,92,285,355,520], d1:[5,496,285,758,520], d2:[5,902,285,1170,520], d3:[5,1312,285,1582,520],
+  sano:[7,360,190,800,730], danado:[7,830,190,1270,730],
+  tv:[9,985,218,1235,385], ta:[9,985,416,1235,585], tr:[9,985,616,1235,785], tlight:[9,735,180,965,790],
+  report:[11,880,405,1250,606], scale:[10,470,170,1190,570], hero1:[1,700,0,1672,941]
+};
+function cropCSS(el,k){
+  const [s,x0,y0,x1,y1]=CROPS[k];const fw=(x1-x0)/RW,fh=(y1-y0)/RH;
+  el.style.backgroundImage=`url(assets/slides/${s}.webp)`;
+  el.style.backgroundSize=`${100/fw}% ${100/fh}%`;
+  el.style.backgroundPosition=`${fw<1?x0/RW/(1-fw)*100:0}% ${fh<1?y0/RH/(1-fh)*100:0}%`;
+}
+document.querySelectorAll('[data-crop]').forEach(el=>cropCSS(el,el.dataset.crop));
+
+/* ================= UI ================= */
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const chs=[...document.querySelectorAll('.ch')];
+const rail=document.getElementById('rail');
+chs.forEach(c=>{const a=document.createElement('a');a.href='#'+c.id;a.textContent=c.dataset.label;rail.appendChild(a);});
+let active='hero',activeIdx=0,scrollP=0;
+function onScroll(){
+  const mid=innerHeight/2;let best=0,bd=1e9;
+  chs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs((r.top+r.bottom)/2-mid);if(d<bd){bd=d;best=i;}});
+  activeIdx=best;active=chs[best].dataset.scene;
+  chs.forEach((c,i)=>{if(i===best)c.classList.add('active');});
+  [...rail.children].forEach((a,i)=>a.classList.toggle('on',i===best));
+  scrollP=scrollY/(document.documentElement.scrollHeight-innerHeight||1);
+  if(active==='verdict')document.getElementById('gArc').setAttribute('stroke-dasharray','50 50');
+}
+addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);onScroll();
+
+let health='sano';
+const HN={sano:'<b>Vibra firme y parejo:</b> frecuencia alta, movimiento lateral sin torsión. Estructura rígida.',
+          danado:'<b>Vibra lento y se tuerce:</b> la frecuencia baja y aparece torsión. Indicio de daño estructural.'};
+function setH(h){health=h;document.querySelectorAll('[data-h]').forEach(b=>b.classList.toggle('on',b.dataset.h===h));document.getElementById('hnote').innerHTML=HN[h];}
+document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>setH(b.dataset.h));setH('sano');
+
+let tl=0;
+document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{tl=+b.dataset.tl;document.querySelectorAll('[data-tl]').forEach(x=>x.classList.toggle('on',x===b));});
+
+setTimeout(()=>document.getElementById('fab').classList.add('show'),7000);
+setTimeout(()=>document.getElementById('fab').classList.remove('show'),17000);
+
+// deck lightbox
+const lbx=document.getElementById('lbx'),lImg=lbx.querySelector('img'),lCt=lbx.querySelector('.ct');let cur=0;
+function openDeck(i){cur=(i+11)%11;lImg.src=`assets/slides/${cur+1}.webp`;lCt.textContent=`${cur+1} / 11`;lbx.classList.add('open');}
+document.getElementById('openDeck').onclick=e=>{e.preventDefault();openDeck(0);};
+lbx.querySelector('.x').onclick=()=>lbx.classList.remove('open');
+lbx.querySelector('.pv').onclick=()=>openDeck(cur-1);
+lbx.querySelector('.nx').onclick=()=>openDeck(cur+1);
+lbx.onclick=e=>{if(e.target===lbx)lbx.classList.remove('open');};
+addEventListener('keydown',e=>{if(!lbx.classList.contains('open'))return;if(e.key==='Escape')lbx.classList.remove('open');if(e.key==='ArrowLeft')openDeck(cur-1);if(e.key==='ArrowRight')openDeck(cur+1);});
+
+// live waveform
+const wv=document.getElementById('wv1');let wx,ww,wh;
+function sizeW(){const d=Math.min(devicePixelRatio,2),r=wv.getBoundingClientRect();ww=r.width;wh=r.height;wv.width=ww*d;wv.height=wh*d;wx=wv.getContext('2d');wx.setTransform(d,0,0,d,0,0);}
+sizeW();addEventListener('resize',sizeW);
+const rn=i=>{const s=Math.sin(i*12.9898)*43758.5453;return s-Math.floor(s);};
+function drawWave(t){if(!ww)return;wx.clearRect(0,0,ww,wh);wx.beginPath();wx.strokeStyle='#2ec5ff';wx.lineWidth=1.4;wx.shadowColor='#2ec5ff';wx.shadowBlur=6;
+  for(let p=0;p<ww;p++){const k=p+t*90;const b=Math.exp(-Math.pow(((k/170)%5)-1.3,2)*3)+.3*Math.exp(-Math.pow(((k/120)%4)-2.5,2)*4);
+    const v=(Math.sin(k*.55)*.5+Math.sin(k*1.3+1)*.3+(rn(Math.floor(k))-.5)*.9)*(.16+b);const y=wh/2-v*wh*.45;p?wx.lineTo(p,y):wx.moveTo(p,y);}
+  wx.stroke();wx.shadowBlur=0;}
+
+/* ================= 3D ================= */
+const loader=document.getElementById('loader'),ldb=document.getElementById('ldb');
+let render3D=()=>{};
+let ok3D=!!window.THREE;
+try{const c=document.createElement('canvas');if(!(c.getContext('webgl')||c.getContext('experimental-webgl')))ok3D=false;}catch(e){ok3D=false;}
+
+if(ok3D){
+  const mobile=()=>innerWidth<=760;
+  const stage=document.getElementById('stage');
+  const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.NoToneMapping;
+  renderer.localClippingEnabled=true;
+  stage.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x040a17);
+  scene.fog=new THREE.FogExp2(0x040a17,0.011);
+  const camera=new THREE.PerspectiveCamera(36,1,.1,400);
+
+  scene.add(new THREE.HemisphereLight(0x8fb6ff,0x0a1426,.7));
+  const sun=new THREE.DirectionalLight(0xbfd8ff,1.1);sun.position.set(10,18,12);scene.add(sun);
+  const rim=new THREE.PointLight(0x2ec5ff,2,50);rim.position.set(-8,8,-6);scene.add(rim);
+  const warm=new THREE.PointLight(0xffa860,.5,30);warm.position.set(6,16,6);scene.add(warm);
+
+  const manager=new THREE.LoadingManager();
+  manager.onProgress=(u,l,t)=>{ldb.style.width=(l/t*100)+'%';};
+  manager.onLoad=()=>{ldb.style.width='100%';setTimeout(()=>loader.classList.add('done'),350);};
+  const texLoader=new THREE.TextureLoader(manager);
+
+  /* ---- procedural facade textures ---- */
+  function facadeTex(cols,lit,seed){
+    const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
+    const e=document.createElement('canvas');e.width=512;e.height=128;const ex=e.getContext('2d');
+    x.fillStyle='#5d6573';x.fillRect(0,0,512,128);
+    for(let i=0;i<1800;i++){const g=80+Math.random()*50|0;x.fillStyle=`rgba(${g},${g+4},${g+12},.18)`;x.fillRect(Math.random()*512,Math.random()*128,2,2);}
+    ex.fillStyle='#000';ex.fillRect(0,0,512,128);
+    const w=512/cols;
+    for(let i=0;i<cols;i++){
+      const wx0=i*w+w*.12,wy0=24,wwid=w*.76,whei=74;
+      const grd=x.createLinearGradient(0,wy0,0,wy0+whei);grd.addColorStop(0,'#1b3350');grd.addColorStop(1,'#0b1626');
+      x.fillStyle=grd;x.fillRect(wx0,wy0,wwid,whei);
+      x.fillStyle='rgba(140,200,255,.18)';x.fillRect(wx0,wy0,wwid,6);
+      x.fillStyle='#3d4450';x.fillRect(wx0+wwid/2-1.5,wy0,3,whei);
+      x.fillStyle='#2a2f38';x.fillRect(wx0-4,wy0+whei,wwid+8,8); // balcony rail
+      if(rn(i*7.3+seed)<lit){const col=rn(i+seed*3)<.5?'255,196,120':'200,225,255';
+        x.fillStyle=`rgba(${col},.5)`;x.fillRect(wx0+3,wy0+8,wwid-6,whei-10);
+        ex.fillStyle=`rgb(${col})`;ex.fillRect(wx0+3,wy0+8,wwid-6,whei-10);}
+    }
+    x.fillStyle='#454c58';x.fillRect(0,0,512,10);
+    const t=new THREE.CanvasTexture(c),te=new THREE.CanvasTexture(e);
+    [t,te].forEach(k=>{k.encoding=THREE.sRGBEncoding;k.anisotropy=4;});
+    return {t,te};
+  }
+
+  const NX=4,NZ=3,FL=8,SX=2.3,SZ=2.1,H=1.42;
+  const HX=(NX-1)*SX/2,HZ=(NZ-1)*SZ/2,TOP=FL*H;
+  const root=new THREE.Group();scene.add(root);
+
+  /* ground */
+  const groundMat=new THREE.MeshStandardMaterial({color:0x07101f,roughness:.6,metalness:.3});
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(120,64),groundMat);ground.rotation.x=-Math.PI/2;scene.add(ground);
+  const grid=new THREE.GridHelper(120,120,0x1d4f86,0x0c2240);grid.material.transparent=true;grid.material.opacity=.35;grid.position.y=.01;scene.add(grid);
+  const padRing=new THREE.Mesh(new THREE.RingGeometry(7.4,7.55,128),new THREE.MeshBasicMaterial({color:0x2ec5ff,transparent:true,opacity:.6,side:THREE.DoubleSide}));padRing.rotation.x=-Math.PI/2;padRing.position.y=.02;scene.add(padRing);
+  const rings=[];for(let i=0;i<5;i++){const m=new THREE.Mesh(new THREE.RingGeometry(.97,1,128),new THREE.MeshBasicMaterial({color:0x2ec5ff,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=.03;m.userData.o=i/5;scene.add(m);rings.push(m);}
+
+  /* floors (slabs + beams) */
+  const floors=[];
+  const slabGeo=new THREE.BoxGeometry(HX*2+.9,.14,HZ*2+.9);const slabEdges=new THREE.EdgesGeometry(slabGeo);
+  const bp=[];for(let i=0;i<NX;i++)bp.push(-HX+i*SX,0,-HZ,-HX+i*SX,0,HZ);for(let k=0;k<NZ;k++)bp.push(-HX,0,-HZ+k*SZ,HX,0,-HZ+k*SZ);
+  const beamGeo=new THREE.BufferGeometry();beamGeo.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));
+  const clipPlane=new THREE.Plane(new THREE.Vector3(0,1,0),100);
+  const fac=facadeTex(5,.26,1),fac2=facadeTex(3,.26,2);
+  const shellMats=[
+    new THREE.MeshStandardMaterial({map:fac2.t,emissiveMap:fac2.te,emissive:0xffffff,emissiveIntensity:.32,roughness:.8,clippingPlanes:[clipPlane],transparent:true}),
+    null,
+    new THREE.MeshStandardMaterial({color:0x4a515c,roughness:.9,clippingPlanes:[clipPlane],transparent:true}),
+    null,
+    new THREE.MeshStandardMaterial({map:fac.t,emissiveMap:fac.te,emissive:0xffffff,emissiveIntensity:.32,roughness:.8,clippingPlanes:[clipPlane],transparent:true}),
+    null];
+  shellMats[1]=shellMats[0];shellMats[3]=shellMats[2];shellMats[5]=shellMats[4];
+  const uniqShell=[shellMats[0],shellMats[2],shellMats[4]];
+  const shellGeo=new THREE.BoxGeometry(HX*2+.6,H-.02,HZ*2+.6);
+  for(let f=0;f<=FL;f++){
+    const g=new THREE.Group();g.position.y=f*H;
+    const sm=new THREE.MeshStandardMaterial({color:0x2ec5ff,emissive:0x0b3a5c,transparent:true,opacity:.12,depthWrite:false});
+    g.add(new THREE.Mesh(slabGeo,sm));
+    const em=new THREE.LineBasicMaterial({color:0x6fd6ff,transparent:true,opacity:.85});g.add(new THREE.LineSegments(slabEdges,em));
+    const bm=new THREE.LineBasicMaterial({color:0x2ec5ff,transparent:true,opacity:.5});const bl=new THREE.LineSegments(beamGeo,bm);bl.position.y=-.08;g.add(bl);
+    if(f<FL){const sh=new THREE.Mesh(shellGeo,shellMats);sh.position.y=H/2;g.add(sh);g.userData.shell=sh;}
+    g.userData.sm=sm;g.userData.em=em;g.userData.bm=bm;
+    root.add(g);floors.push(g);
+  }
+  // roof parapet + tank
+  const roofCap=new THREE.Mesh(new THREE.BoxGeometry(2,.9,1.6),new THREE.MeshStandardMaterial({color:0x3a414c,roughness:.9,clippingPlanes:[clipPlane],transparent:true}));roofCap.position.set(-.8,.5,0);floors[FL].add(roofCap);
+
+  /* columns */
+  const colGeo=new THREE.BoxGeometry(.24,1,.24);
+  const cols=[];
+  for(let f=0;f<FL;f++)for(let i=0;i<NX;i++)for(let k=0;k<NZ;k++){
+    const m=new THREE.MeshStandardMaterial({color:0x2ec5ff,emissive:0x2ec5ff,emissiveIntensity:.3,roughness:.75,metalness:.1});
+    const mesh=new THREE.Mesh(colGeo,m);mesh.userData={f,x:-HX+i*SX,z:-HZ+k*SZ,c:new THREE.Color(0x2ec5ff)};root.add(mesh);cols.push(mesh);
+  }
+  const order=cols.map((c,i)=>({i,s:Math.abs(c.userData.f-1)*.9+Math.random()*2.6})).sort((a,b)=>a.s-b.s);
+  order.forEach((o,r)=>{const p=r/cols.length;cols[o.i].userData.d=p<.05?3:p<.2?2:p<.4?1:0;});
+
+  /* sensors */
+  const sensors=[];
+  [[-HX,-HZ],[HX,-HZ],[-HX,HZ],[HX,HZ]].forEach(([x,z],i)=>{
+    const s=new THREE.Mesh(new THREE.BoxGeometry(.42,.28,.42),new THREE.MeshStandardMaterial({color:0x111a28,emissive:0xff7a1a,emissiveIntensity:0}));s.position.set(x,.22,z);floors[FL].add(s);
+    const rr=[];for(let r=0;r<3;r++){const ring=new THREE.Mesh(new THREE.RingGeometry(.32,.4,48),new THREE.MeshBasicMaterial({color:0xff8a2a,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.set(x,.15,z);ring.userData.o=r/3;floors[FL].add(ring);rr.push(ring);}
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,8,6),new THREE.MeshBasicMaterial({color:0xff8a2a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));beam.position.set(x,4.2,z);floors[FL].add(beam);
+    sensors.push({s,rr,beam});
+  });
+
+  /* scan plane */
+  const scanW=HX*2+2.4,scanD=HZ*2+2.4;
+  const scanMat=new THREE.MeshBasicMaterial({color:0x2ec5ff,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false});
+  const scan=new THREE.Mesh(new THREE.PlaneGeometry(scanW,scanD),scanMat);scan.rotation.x=-Math.PI/2;root.add(scan);
+  const scanEM=new THREE.LineBasicMaterial({color:0xbff0ff,transparent:true,opacity:0});
+  const scanE=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(scanW,scanD)),scanEM);scanE.rotation.x=-Math.PI/2;root.add(scanE);
+
+  /* city */
+  const city=new THREE.Group();scene.add(city);
+  const cityFac=[facadeTex(4,.25,5),facadeTex(6,.2,9),facadeTex(3,.3,13)];
+  for(let i=0;i<46;i++){
+    const w=3+Math.random()*5,h=6+Math.random()*26,d=3+Math.random()*5;
+    const a=Math.random()*Math.PI*2,r=58+Math.random()*40;
+    const f=cityFac[i%3];const t=f.t.clone(),te=f.te.clone();t.needsUpdate=te.needsUpdate=true;t.wrapS=t.wrapT=te.wrapS=te.wrapT=THREE.RepeatWrapping;t.repeat.set(1,h/1.6);te.repeat.copy(t.repeat);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({map:t,emissiveMap:te,emissive:0xffffff,emissiveIntensity:.55,color:0x6a7486,roughness:.9}));
+    m.position.set(Math.cos(a)*r,h/2,Math.sin(a)*r);m.rotation.y=Math.random()*Math.PI;city.add(m);
+  }
+
+  /* dust particles */
+  const PN=900,pp=new Float32Array(PN*3);for(let i=0;i<PN;i++){pp[i*3]=(Math.random()-.5)*70;pp[i*3+1]=Math.random()*30;pp[i*3+2]=(Math.random()-.5)*70;}
+  const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0x8fe4ff,size:.07,transparent:true,opacity:.6,depthWrite:false,blending:THREE.AdditiveBlending}));scene.add(pts);
+
+  /* floating photo cards (crops of the slides) */
+  const slideTex={};
+  function tex(n){if(!slideTex[n]){const t=texLoader.load(`assets/slides/${n}.webp`);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;slideTex[n]=t;}return slideTex[n];}
+  function makeCard(key,h){
+    const [s,x0,y0,x1,y1]=CROPS[key];const t=texLoader.load(`assets/slides/${s}.webp`);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;
+    t.repeat.set((x1-x0)/RW,(y1-y0)/RH);t.offset.set(x0/RW,1-y1/RH);
+    const w=h*(x1-x0)/(y1-y0);
+    const g=new THREE.Group();
+    const mat=new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:0,toneMapped:false,depthWrite:false});
+    g.add(new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat));
+    const fm=new THREE.LineBasicMaterial({color:0x6fd6ff,transparent:true,opacity:0});
+    g.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(w*1.03,h*1.03)),fm));
+    const glow=new THREE.Mesh(new THREE.PlaneGeometry(w*1.12,h*1.12),new THREE.MeshBasicMaterial({color:0x2ec5ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));glow.position.z=-.05;g.add(glow);
+    g.userData={mat,fm,glow,a:0,w,h};g.visible=false;scene.add(g);return g;
+  }
+  // per scene: [cropKey, height, right, up, depth]
+  const CARDS={
+    hero:   [['cracked',5.4, 5.6, 4.4,-12],['eng1',3.4, 6.6,-2.9,-4]],
+    method: [['crack',3.6, 7.5, 2.4,-6],['roof',3.6, 8.2,-2.6,-4]],
+    diag:   [['sano',4.2, 7.4, 2.2,-6],['danado',4.2, 8.6,-2.4,-3.5]],
+    verdict:[['tlight',5.2, 7.6, .6,-7]],
+    cta:    [['report',3.0,-2.5,-3.4,-1],['eng11',4.8, 8.4, 1.2,-8]],
+  };
+  const cardObjs={};for(const k in CARDS)cardObjs[k]=CARDS[k].map(([key,h,r,u,d])=>{const g=makeCard(key,h);g.userData.off=[r,u,d];return g;});
+
+  /* bloom */
+  let composer=null,bloom=null;
+  if(THREE.EffectComposer&&THREE.UnrealBloomPass){
+    composer=new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene,camera));
+    bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.6,.5,.72);
+    composer.addPass(bloom);
+  }
+
+  /* scene presets: camera (az, el, d, ty) + structure state */
+  const PRE={
+    hero:   {az:.55,el:.06,d:33,ty:6.2,ampX:.03,fr:.9,ampT:0,shake:.0,shell:1,scan:1,sens:0},
+    method: {az:-.55,el:.62,d:23,ty:9.5,ampX:.08,fr:1.3,ampT:0,shake:0,shell:.0,scan:1,sens:1},
+    diag:   {az:.95,el:.14,d:29,ty:5.6,ampX:.25,fr:2,ampT:0,shake:0,shell:0,scan:0,sens:0},
+    verdict:{az:.15,el:.24,d:30,ty:5.6,ampX:.02,fr:.9,ampT:0,shake:0,shell:0,scan:0,sens:0},
+    cta:    {az:2.4,el:.34,d:36,ty:5.6,ampX:.03,fr:.9,ampT:0,shake:0,shell:1,scan:0,sens:1},
+  };
+  const S={...PRE.hero};const lerp=(a,b,k)=>a+(b-a)*k;
+  let mx=0,my=0,tmx=0,tmy=0;
+  addEventListener('pointermove',e=>{tmx=e.clientX/innerWidth-.5;tmy=e.clientY/innerHeight-.5;});
+  addEventListener('deviceorientation',e=>{if(e.gamma!=null){tmx=Math.max(-.5,Math.min(.5,e.gamma/60));}});
+
+  function resize(){
+    const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
+    if(w>980)camera.setViewOffset(w,h,-w*.2,0,w,h);
+    else if(w<=760)camera.setViewOffset(w,h,0,h*.24,w,h);
+    else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    if(composer){composer.setSize(w,h);composer.setPixelRatio&&composer.setPixelRatio(renderer.getPixelRatio());}
+  }
+  resize();addEventListener('resize',resize);
+
+  let phase=0,scanT=0;const up=new THREE.Vector3(0,1,0),dir=new THREE.Vector3(),tc=new THREE.Color();
+  const cyan=new THREE.Color(0x2ec5ff),white=new THREE.Color(0xe6f8ff),red=new THREE.Color(0xff3d3d),green=new THREE.Color(0x3ee07a);
+  const DCOL=[green,new THREE.Color(0xffd23f),new THREE.Color(0xff8a2a),red];
+  const TL=[green,new THREE.Color(0xffd23f),red];
+  const disp=[];for(let f=0;f<=FL;f++)disp.push({x:0,z:0,th:0});
+  const camR=new THREE.Vector3(),camU=new THREE.Vector3(),camF=new THREE.Vector3(),tgt=new THREE.Vector3();
+
+  render3D=(dt,t)=>{
+    const P={...(PRE[active]||PRE.hero)};
+    if(active==='diag'){if(health==='danado'){P.ampX=.6;P.fr=.55;P.ampT=.12;}else{P.ampX=.22;P.fr=2.2;}}
+    if(active==='hero'&&t<4.5)P.shake=1-(t/4.5); // intro tremor
+    const k=1-Math.pow(.06,dt),kc=1-Math.pow(.18,dt);
+    for(const key in P)S[key]=lerp(S[key],P[key],key==='az'||key==='el'||key==='d'||key==='ty'?kc:k);
+    if(reduce)S.shake=0;
+
+    phase+=dt*S.fr*Math.PI*2*(reduce?.2:1);
+    for(let f=0;f<=FL;f++){
+      const shp=Math.sin(f/FL*Math.PI/2);
+      let dx=S.ampX*shp*Math.sin(phase),dz=0,th=S.ampT*shp*Math.sin(phase+.7);
+      if(S.shake>.01){dx+=S.shake*.22*shp*(Math.sin(t*21+f)*.6+Math.sin(t*33+f*2)*.4);dz+=S.shake*.14*shp*Math.sin(t*27+f*1.7);}
+      disp[f].x=dx;disp[f].z=dz;disp[f].th=th;const g=floors[f];g.position.x=dx;g.position.z=dz;g.rotation.y=th;
+    }
+    root.position.x=S.shake*.05*Math.sin(t*43);
+
+    // X-ray scan: facade visible above the scan line
+    scanT+=dt*.16;const sy=(Math.sin(scanT*Math.PI*2-Math.PI/2)*.5+.5)*(TOP+1)-.3;
+    scan.position.y=scanE.position.y=sy;
+    scanMat.opacity=S.scan*.12;scanEM.opacity=S.scan;
+    const clipY=lerp(-2,sy,S.scan);clipPlane.constant=-clipY;
+    uniqShell.forEach(m=>{m.opacity=S.shell;});roofCap.material.opacity=S.shell;
+    const shellOn=S.shell>.02;floors.forEach(g=>{if(g.userData.shell)g.userData.shell.visible=shellOn;});roofCap.visible=shellOn;
+
+    for(const c of cols){
+      const u=c.userData,a=disp[u.f],b=disp[u.f+1];
+      const ca=Math.cos(a.th),sa=Math.sin(a.th),cb=Math.cos(b.th),sb=Math.sin(b.th);
+      const x0=u.x*ca+u.z*sa+a.x,z0=-u.x*sa+u.z*ca+a.z,y0=u.f*H,x1=u.x*cb+u.z*sb+b.x,z1=-u.x*sb+u.z*cb+b.z,y1=y0+H;
+      c.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);dir.set(x1-x0,H,z1-z0);const len=dir.length();dir.multiplyScalar(1/len);
+      c.quaternion.setFromUnitVectors(up,dir);c.scale.set(1,len,1);
+      let glow=.28;
+      if(active==='diag'){ if(health==='sano'){tc.copy(green);} else {tc.copy(DCOL[u.d]);glow=u.d>=2?.55+.3*Math.sin(t*6+u.f):.3;} }
+      else if(active==='verdict'){tc.copy(TL[tl]);glow=.4;}
+      else if(active==='method'){tc.copy(cyan);if(u.f===1){tc.lerp(DCOL[2],.5+.5*Math.sin(t*4));glow=.6;}}
+      else tc.copy(cyan);
+      if(S.scan>.05){const dy=Math.abs(y0+H/2-sy);if(dy<H*.8)tc.lerp(white,(1-dy/(H*.8))*.5*S.scan);}
+      u.c.lerp(tc,Math.min(1,k*1.6));c.material.color.copy(u.c).multiplyScalar(.45);c.material.emissive.copy(u.c);
+      c.material.emissiveIntensity=lerp(c.material.emissiveIntensity,glow,k);
+    }
+    const slabC=active==='verdict'?TL[tl]:(active==='diag'?(health==='sano'?green:red):cyan);
+    floors.forEach(g=>{g.userData.em.color.lerp(slabC,k);g.userData.bm.color.lerp(slabC,k);g.userData.sm.color.lerp(slabC,k);});
+    padRing.material.color.lerp(slabC,k);
+
+    sensors.forEach((s,i)=>{s.s.material.emissiveIntensity=S.sens*(1.2+.8*Math.sin(t*6+i));s.beam.material.opacity=S.sens*.35;
+      s.rr.forEach(r=>{const p=(t*.7+r.userData.o+i*.11)%1;r.scale.setScalar(1+p*6);r.material.opacity=S.sens*(1-p)*.9;});});
+    const ringOn=Math.max(S.shake,active==='method'?.35:0,active==='diag'&&health==='danado'?.5:0);
+    rings.forEach(r=>{const p=(t*.35+r.userData.o)%1;r.scale.setScalar(3+p*30);r.material.opacity=ringOn*(1-p)*.8;});
+    pts.rotation.y+=dt*.012;pts.position.y=Math.sin(t*.2)*.4;
+    city.rotation.y+=dt*.003;
+
+    // camera (with scroll-continuous drift + parallax)
+    mx=lerp(mx,tmx,.04);my=lerp(my,tmy,.04);
+    const az=S.az+t*.03+mx*.35,el=Math.max(.02,S.el-my*.12);
+    const D=S.d*(camera.aspect<1.2?Math.min(1.45,1.0/camera.aspect+.4):1);
+    tgt.set(0,S.ty,0);
+    camera.position.set(Math.sin(az)*Math.cos(el)*D,S.ty+Math.sin(el)*D,Math.cos(az)*Math.cos(el)*D);
+    camera.lookAt(tgt);
+    camera.updateMatrixWorld();
+    camR.setFromMatrixColumn(camera.matrixWorld,0);camU.setFromMatrixColumn(camera.matrixWorld,1);camF.setFromMatrixColumn(camera.matrixWorld,2).negate();
+
+    // cards
+    const mob=mobile();
+    for(const key in cardObjs){
+      cardObjs[key].forEach((g,i)=>{
+        const on=key===active;const u=g.userData;u.a=lerp(u.a,on?1:0,on?k*.8:k*1.4);
+        g.visible=u.a>.01;if(!g.visible)return;
+        let [r,uu,d]=u.off;r-=1.6;if(mob){r=r*.42;uu=uu*.7+5.5;d=d-4;}
+        const bob=Math.sin(t*.8+i*2)*.25,rise=(1-u.a)*-2.5;
+        g.position.copy(tgt).addScaledVector(camR,r+(1-u.a)*3).addScaledVector(camU,uu+bob+rise).addScaledVector(camF,-d);
+        g.quaternion.copy(camera.quaternion);g.rotateY(-.18-mx*.2);g.rotateX(my*.1);
+        u.mat.opacity=u.a;u.fm.opacity=u.a*.9;u.glow.material.opacity=u.a*.08;
+        g.scale.setScalar(mob?.72:1);
+      });
+    }
+
+    if(composer)composer.render();else renderer.render(scene,camera);
+  };
+}else{
+  loader.classList.add('done');
+  document.getElementById('stage').style.background='url(assets/slides/1.webp) 70% 50%/cover';
+}
+
+/* ================= loop ================= */
+let last=performance.now(),T=0;
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+  if(!document.hidden){render3D(dt,T);if(active==='method')drawWave(T);}
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+setTimeout(()=>loader.classList.add('done'),6000);
+</script>
+</body>
+</html>
